@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 
 
 # Dataset Definition
-
 class BuildingDataset(Dataset):
     def __init__(self, image_mask_pair):
         self.image_mask_pair = image_mask_pair
@@ -51,20 +50,17 @@ class BuildingDataset(Dataset):
         mask = torch.from_numpy(mask.astype(np.float32))
 
         return self.pad_image(image,10), self.pad_image(mask,  10)
-    
-    
-
-if __name__== '__main__':
-        
+   
+# function to load training and valodation data 
+def loadData(image_folder_path:str, mask_folder_path:str ,train_split:float,**kewargs):
     # Create image-mask pairs
-    image_folder_path = './sample_datasets/image'
-    mask_folder_path = './sample_datasets/mask'
+    batch_size = kewargs.get('batch_size', 2)
 
     mask_files = {os.path.splitext(os.path.basename(path))[0]: path for path in glob.glob(os.path.join(mask_folder_path, '*.tif'))}
 
     print(f"Found {len(mask_files)} mask files.")
     if len(mask_files) == 0:
-        print("No mask files found. Please check the mask folder path and file extensions.")
+        raise ValueError("No mask files found. Please check the mask folder path and file extensions.")
 
     image_mask_pair = [
         (os.path.join(image_folder_path, os.path.basename(image_path)),
@@ -76,20 +72,30 @@ if __name__== '__main__':
     print(f"Found {len(image_mask_pair)} image-mask pairs.")
 
     if len(image_mask_pair) == 0:
-        print("No image-mask pairs found. Exiting.")
+        raise ValueError("No image-mask pairs found. Exiting.")
         
-
     # Dataset and DataLoader
     dataset = BuildingDataset(image_mask_pair=image_mask_pair)
-    print(dataset)
-    train_size = int(0.8 * len(dataset))
+    train_size = int(train_split * len(dataset))
     val_size = len(dataset) - train_size
 
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=2, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     
+    return train_loader, val_loader
+    
+
+
+if __name__== '__main__':
+    
+    train_loader, val_loader = loadData(
+        'sample_datasets/image',
+        'sample_datasets/mask',
+        0.8,
+        **{'batch_size' : 2}
+        )
     for batch in train_loader:
         print(batch)
     
